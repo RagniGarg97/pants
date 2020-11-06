@@ -250,7 +250,6 @@ type Confetti struct {
 func NewPants() *Pants {
 	s := &Pants{BaseSprite: sprite.BaseSprite{
 		Visible:        true,
-		Y:              2,
 		CurrentCostume: 0},
 		Timer:   0,
 		TimeOut: 6}
@@ -258,17 +257,22 @@ func NewPants() *Pants {
 	s.AddCostume(sprite.NewCostume(c3, 'x'))
 	s.AddCostume(sprite.NewCostume(c2, 'x'))
 	s.AddCostume(sprite.NewCostume(c1, 'x'))
-	s.X = Width/2 - 20
+	s.Init()
+	s.RegisterEvent("screenResized", func () {
+		s.X = Width/2 - s.Width/2
+		if Height > s.Height {
+			s.Y = Height/2 - s.Height/2
+		} else {
+			s.Y = 2
+		}
+	})
 	return s
 }
 
 func (s *Pants) Update() {
 	s.Timer = s.Timer + 1
 	if s.Timer > s.TimeOut {
-		s.CurrentCostume = s.CurrentCostume + 1
-		if s.CurrentCostume >= len(s.Costumes) {
-			s.CurrentCostume = 0
-		}
+		s.NextCostume()
 		s.Timer = 0
 	}
 }
@@ -279,8 +283,11 @@ func NewPantsText() *PantsText {
 		CurrentCostume: 0},
 		Timer: 0}
 	s.AddCostume(sprite.NewCostume(pants_c0, 'x'))
-	s.X = Width/2 - s.Width/2
-	s.Y = Height/2 - s.Height/2
+	s.Init()
+	s.RegisterEvent("screenResized", func () {
+		s.X = Width/2 - s.Width/2
+		s.Y = Height/2 - s.Height/2
+	})
 	return s
 }
 
@@ -299,10 +306,19 @@ func NewConfetti() *Confetti {
 		TimeOut: 3}
 	s.AddCostume(sprite.NewCostume(confetti_c0, 'x'))
 	s.AddCostume(sprite.NewCostume(confetti_c1, 'x'))
+	s.Init()
+
 	src := rand.NewSource(time.Now().UnixNano())
 	rnd := rand.New(src)
-	s.X = rnd.Intn(Width)
-	s.Y = -rnd.Intn(Height)
+
+	s.RegisterEvent("screenResized", func () {
+		if Width > 0 {
+			s.X = rnd.Intn(Width)
+		}
+		if Height > 0 {
+			s.Y = -rnd.Intn(Height)
+		}
+	})
 	s.VY = rnd.Intn(2) + 1
 	s.VYTimer = 0
 	s.VYTimeOut = 2
@@ -313,11 +329,7 @@ func (s *Confetti) Update() {
 	s.Timer = s.Timer + 1
 	s.VYTimer = s.VYTimer + 1
 	if s.Timer > 2 {
-		if s.CurrentCostume == 0 {
-			s.CurrentCostume = 1
-		} else {
-			s.CurrentCostume = 0
-		}
+		s.NextCostume()
 		s.Timer = 0
 	}
 	if s.VYTimer > s.VYTimeOut {
@@ -370,6 +382,7 @@ mainloop:
 			} else if ev.Type == tm.EventResize {
 				Width = ev.Width
 				Height = ev.Height
+				allSprites.TriggerEvent("screenResized")
 			}
 		default:
 			allSprites.Update()
