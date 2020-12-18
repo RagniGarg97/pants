@@ -1,0 +1,3 @@
+FROM busybox:latest
+COPY somefile2.txt .
+RUN cat /somefile2.txt
